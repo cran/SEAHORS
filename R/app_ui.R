@@ -72,9 +72,12 @@ ui <- shinyUI(
                    ), # end of conditionalPanel
                    conditionalPanel(condition="input.bt2==2",
                                     h4(style = "color: red;","Modifying point size according to a variable"),
+                                    
                                     tags$br(),
                                     fluidRow(column (6,numericInput("minsize", "Minimal point size", 0.25, min = 0.1, max=10, width="50%")),
                                              column (6,numericInput("point.size", "Default point size", 2, min = 1, max=20, width="50%"), ),  ),
+                                     tags$br(),
+                                     h5(style = "color: blue;","Only available with unique ID: "),        
                                     uiOutput("sectionXx2"),
                                     uiOutput("sectionXy2"),
                                     uiOutput("sectionXz2"),
@@ -86,7 +89,7 @@ ui <- shinyUI(
                                     tags$h5(style = "color: blue;","you can import color ramp from panel 'additional settings'"),
                                     
                                     tags$br(),
-                                    fluidRow(column (7,checkboxInput("optioninfosfigplotly", "Show figure legend", TRUE))),
+                                    #fluidRow(column (7,checkboxInput("optioninfosfigplotly", "Show figure legend", TRUE))),
                                     tags$br(),
                                     uiOutput("liste.Colors"),
                                     tags$hr(),
@@ -103,8 +106,9 @@ ui <- shinyUI(
                                            column(6,selectInput("shape", "main shape",
                                                                 choices= list("circle"='circle',
                                                                               "square"= 'square',
-                                                                              "triangle"='triangle-up',
-                                                                              "diamond"='diamond' )),
+                                                                              "triangle"='triangle',
+                                                                              "diamond"='diamond',
+                                                                              "star"='star')),
                                            ),
                                            
                                            column(6, style = "margin-top: 25px;", actionButton("do.shape1", "Set main shape ")),
@@ -124,6 +128,8 @@ ui <- shinyUI(
                    conditionalPanel(condition="input.bt2==5",
                                     h4(style = "color: red;","Figure options"),
                                     tags$br(),
+                                    fluidRow(column (7,checkboxInput("optioninfosfigplotly", "Show figure legend", TRUE))),
+                                    tags$br(),
                                     column(10,column(5,numericInput("height.size.b", label = h5("Figure height"), value = 800),),
                                            column(5,numericInput("width.size.b", label = h5("Figure width"), value = 1000),),
                                            tags$hr(),),
@@ -142,7 +148,7 @@ ui <- shinyUI(
                                     column(10,
                                            column(4,numericInput("Xminor.breaks", "Position of X minor breaks",1, min = 0, max=40),),
                                            column(4,numericInput("Yminor.breaks", "Position of Y minor breaks",1, min = 0, max=40),),
-                                           column(4,numericInput("Zminor.breaks", "Position of Z minor breakss",1, min = 0, max=40),),),
+                                           column(4,numericInput("Zminor.breaks", "Position of Z minor breaks",1, min = 0, max=40),),),
                                     
                                     
                                     column(12,br(),
@@ -177,7 +183,7 @@ ui <- shinyUI(
    
    <i>SEAHORS</i> is dedicated to the intra-site spatial analysis of archaeological piece-plotted</p>
    
-   <p> v1.5</p>
+   <p> v1.7</p>
    <p>This shiny R script makes possible to explore the spatial organisation of coordinate points taken on archaeological fields 
   and to visualise their distributions using interactive 3D and 2D plots </p>
    <br>
@@ -553,7 +559,9 @@ ui <- shinyUI(
                              hr(style = "border-top: 1px solid #000000;"), 
                              fluidRow(column(12,
                                              column(2, uiOutput("ratiotocoorsimple2"),),
-                                             column(12, downloadButton("downloadData2d.slice", "Download as .HTML")),
+                                            # column(12, downloadButton("downloadData2d.slice", "Download as .HTML")),
+                                             tags$br(),
+                                             column(12, uiOutput("download.slice.output")),
                              ),),#end of fluidrow
                              
                     ),#end tabPanel 2D slice
@@ -609,7 +617,7 @@ ui <- shinyUI(
                                                                                yz = "yz",
                                                                                xz = "xz"), inline=TRUE),),
                                              column(5, downloadButton("downloadDatadensity", "Download as .pdf")),
-                                             column(2,checkboxInput("ratio.to.coord", label = "Ratio = 1:1", value = F),),
+                                             column(2,numericInput("ratio.to.coord", label = h5("Ratio figure"), value = 1),),
                              ),
                              tags$hr(),
                              column(12,

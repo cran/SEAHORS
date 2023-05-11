@@ -14,7 +14,7 @@ app_server <- function(input, output, session) {
   ##### necessary settings----
   options(shiny.maxRequestSize=150*1024^2) ## limits 150 MO to import
   font.size <- "8pt"
-  vv<-NULL ## for plotly_selected
+   vv<-reactiveVal(NULL) ## for plotly_selected
   minsize<-reactiveVal(0.25) ##for min point
   size.scale<-reactiveVal(3) ##for point
   stepX<-reactiveVal(0.1) ## step size sliders
@@ -64,8 +64,9 @@ app_server <- function(input, output, session) {
   input_file1.name<-reactiveVal()
   input_file1.datapath<-reactiveVal()
   getdata.launch<-reactiveVal()
-  
-  
+  e<-reactiveVal(NULL) ## create an environment to save the 2D.slice pdf
+  ratio.slice<-reactiveVal(1)
+  nb.slice<-reactiveVal(1) ##nb of slice for saving it
   ##### import data----
   df<-reactiveValues( #creation df 
     df=NULL) # end reactivevalues
@@ -113,10 +114,10 @@ app_server <- function(input, output, session) {
     shapeX<-shape_all()
     df$df<-df$df2[,!sapply(df$df2, function(x) is.logical(x))] ##remove column without data
     if (input$set.dec == TRUE){
-      df$df[] <- apply(df$df,2,function (x) str_replace_all(x,",","."))
+      df$df[] <- apply(df$df,2,function (x) stringr::str_replace_all(x,",","."))
     } else{}
     if(!is.null(df$df[sapply(df$df, function(x) !is.numeric(x))])) {
-      df$df[sapply(df$df, function(x) !is.numeric(x))] <- mutate_all(df$df[sapply(df$df, function(x) !is.numeric(x))], .funs=str_to_lower)}
+      df$df[sapply(df$df, function(x) !is.numeric(x))] <- mutate_all(df$df[sapply(df$df, function(x) !is.numeric(x))], .funs=stringr::str_to_lower)}
     text<-""
     df$df<-cbind(shapeX,text,null,df$df)
     nnrow.df.df(nrow(df$df))
@@ -196,9 +197,9 @@ app_server <- function(input, output, session) {
     themes <- c("theme_bw", "theme_classic", "theme_dark", "theme_grey", "theme_light", "theme_linedraw", "theme_minimal")
     selectInput("themeforfigure.list", h4("Theme for 'Simple 2Dplot'"),
                 choices = themes,
-                selected = "theme_classic")
+                selected = "theme_minimal")
   })
-  themeforfigure.choice<-reactiveVal(c("theme_classic"))
+  themeforfigure.choice<-reactiveVal(c("theme_minimal"))
   observeEvent(input$themeforfigure.list,{
     themeforfigure.choice(c(input$themeforfigure.list))
     
@@ -258,6 +259,9 @@ app_server <- function(input, output, session) {
   })  
   observeEvent(input$ratio.to.coord.simple.2, {
     ratio.simple(input$ratio.to.coord.simple.2)
+  })    
+    observeEvent(input$ratio.to.coord, {
+    ratio.simple(input$ratio.to.coord)
   })    
   
   ##### function used in the script ----
@@ -518,7 +522,7 @@ app_server <- function(input, output, session) {
       }
     )
   }
-  plotServer.simple <- function(id,df.sub.a, Xvar, Yvar,liste.valeur.slice) {
+  plotServer.simple <- function(id,df.sub.a, Xvar, Yvar,liste.valeur.slice,i) {
     moduleServer(
       id,
       function(input, output, session) {
@@ -550,14 +554,14 @@ app_server <- function(input, output, session) {
           p<- p + ggplot2::geom_point(data = df.sub.a,
                           aes(x = .data[[set.antivar.2d.slice]],
                               y = .data[[setZZ()]],
-                              col=factor(layer2),
-                              size=factor(ppsz), 
+                              col=factor(layer2)),
+                              size=ppsz, 
                               shape=shapeX  
-                          ))+
+                          )+
             ggplot2::coord_fixed(ratio.simple())
-          p<- p + scale_color_manual(values=myvaluesx2)+
-            scale_shape_manual(values=shape.level)+
-            scale_size_manual(values=c(min.size2,size.scale))+
+          p<- p + ggplot2::scale_color_manual(values=myvaluesx2)+
+            ggplot2::scale_shape_manual(values=shape.level)+
+            ggplot2::scale_size_manual(values=c(min.size2,size.scale))+
             xlab(paste(set.antivar.2d.name))+ylab(nameZ())+
             do.call(themeforfigure.choice(), list()) +
             theme(axis.title.x = element_text(size=font_size()),
@@ -567,9 +571,11 @@ app_server <- function(input, output, session) {
                   legend.title = element_blank())+
             theme(legend.position='none')
           
-          p<-p+scale_x_continuous(limits= c(xymin,xymax), breaks=seq(floor(min(xymin)),max(xymax),Xtickmarks.size), minor_breaks =seq(floor(min(xymin)),max(xymax),Xminorbreaks()))+
-            scale_y_continuous(limits= c(yymin,yymax),breaks=seq(floor(min(yymin)),max(yymax),Ztickmarks.size()), minor_breaks = seq(floor(min(yymin)),max(yymax),Zminorbreaks()))
-          p 
+          p<-p+ggplot2::scale_x_continuous(limits= c(xymin,xymax), breaks=seq(floor(min(xymin)),max(xymax),Xtickmarks.size), minor_breaks =seq(floor(min(xymin)),max(xymax),Xminorbreaks()))+
+            ggplot2::scale_y_continuous(limits= c(yymin,yymax),breaks=seq(floor(min(yymin)),max(yymax),Ztickmarks.size()), minor_breaks = seq(floor(min(yymin)),max(yymax),Zminorbreaks()))
+          nb.slice(i)
+          assign(paste0("session_store$test$",i),p, envir=e())
+         p 
           
           
         }) # end of renderPlotly
@@ -850,17 +856,42 @@ app_server <- function(input, output, session) {
   
   observeEvent(input$checkbox.invX, {
     req(input$setx)
-    df$df[,input$setx]<-df$df[,input$setx]*-1
+    df$df[,setXX()]<-df$df[,setXX()]*-1
+    updateSelectInput(session,"setx",choices = names(df$df)[c(3:ncol(df$df))],
+                      selected = liste.x())
+    xmax = df$df[,setXX()] %>% ceiling() %>% max(na.rm = TRUE)
+    xmin=df$df[,setXX()] %>% floor() %>% min(na.rm = TRUE)
+    updateSliderInput(session,'xslider','x limits',min=xmin,max=xmax,value=c(xmin,xmax),step=stepX())
+    x2min=input$xslider[1]
+    x2max=input$xslider[2]
+    updateSliderInput(session,'ssectionXx2','x (point size): min/max',min=x2min,max=x2max,value=c(x2min,x2max),step=stepX())
   })
   
   observeEvent(input$checkbox.invY, {
     req(input$sety)
     df$df[,input$sety]<-df$df[,input$sety]*-1
+    updateSelectInput(session,"sety",choices = names(df$df)[c(3:ncol(df$df))],
+                      selected = liste.y())
+    ymax = df$df[,setYY()] %>% ceiling() %>% max(na.rm = TRUE)
+    ymin=df$df[,setYY()] %>% floor() %>% min(na.rm = TRUE)
+    updateSliderInput(session,'yslider','y limits',min=ymin,max=ymax,value=c(ymin,ymax),step=stepY())
+    y2min=input$yslider[1]
+    y2max=input$yslider[2]
+    updateSliderInput(session,'ssectionXy2','y (point size): min/max',min=y2min,max=y2max,value=c(y2min,y2max),step=stepY())
   })
   observeEvent(input$checkbox.invZ, {
     req(input$setz)
-    df$df[,input$setz]<-df$df[,input$setz]*-1
+    df$df[,setZZ()]<-df$df[,setZZ()]*-1
+    updateSelectInput(session,"setz",choices = names(df$df)[c(3:ncol(df$df))],
+                      selected = liste.z())
+    zmax = df$df[,setZZ()] %>% ceiling() %>% max(na.rm = TRUE)
+    zmin=df$df[,setZZ()] %>% floor() %>% min(na.rm = TRUE)
+    updateSliderInput(session,'zslider','z limits',min=zmin,max=zmax,value=c(zmin,zmax),step=stepZ())
+    z2min=input$zslider[1]
+    z2max=input$zslider[2]
+    updateSliderInput(session,'ssectionXz2','z (point size): min/max',min=z2min,max=z2max,value=c(z2min,z2max),step=stepZ())
   })
+  
   
   observeEvent(input$Name.X, {
     req(input$setx)
@@ -893,6 +924,27 @@ app_server <- function(input, output, session) {
       ))
     } 
   })
+
+##verification to use distinct size options 
+
+observeEvent(ignoreInit = TRUE, 
+               c(min.point.sliderx(),
+               min.point.slidery(),
+               min.point.sliderz(),
+               set.var.gris(),
+               minsize()),
+               {
+    diff<-nrow(df.sub())-nrow(df.sub.minpoint())
+
+               if(diff>0 && input$setID == "null"){
+               showModal(modalDialog(
+                 title = "No unique ID",
+                   HTML("Size options are not available without unique ID")
+              
+                  ))
+               }
+  })
+  
   
   ##### import extradata ----
   observe({
@@ -1281,7 +1333,7 @@ app_server <- function(input, output, session) {
   output$shape2=renderUI({
     req(!is.null(fileisupload()))
     req(input$shape)
-    s2<-list("circle","square","triangle-up","diamond")
+    s2<-list("circle","square","triangle","diamond","star")
     s2<-s2[s2!=input$shape]
     selectInput("setshape2", h4("Secondary shape"),
                 choices = s2)
@@ -1315,7 +1367,7 @@ app_server <- function(input, output, session) {
   )
   
   observeEvent(input$do.shape1, {
-    df$df$shapeX<-factor(input$shape)
+    df$df$shapeX<-input$shape
   })
   
   observeEvent(input$do.shape2, {
@@ -1330,6 +1382,12 @@ app_server <- function(input, output, session) {
     req(input$advanced.slice==FALSE)
     numericInput("ratio.to.coord.simple.2", label = h5("Ratio figure"), value = 1)
   })
+  
+    output$download.slice.output=renderUI({ 
+    req(input$advanced.slice==FALSE)
+    downloadButton("download.slice", "Download as .pdf")
+  })
+  
   
   #### liste infos  ----
   observeEvent(req(!is.null(listinfosmarqueur())),{
@@ -1617,29 +1675,17 @@ app_server <- function(input, output, session) {
     d <- event_data('plotly_selected')
     if (is.null(d)) return()
     if (length(d)==0) {
-      # vv <<- NULL # replaced with the following line to avoid declaration of global variable (required for CRAN submission)
-      vv <- NULL
+         vv(NULL)
       return()
     }
     dd <- cbind(d[[3]],d[[4]])
     
     list.parameter.info<-var.function(input$var1)
-    var2<-list.parameter.info[[2]]      
-    
-    # switch(input$var1,
-    #        xy={var<-setXX()
-    #        var2<-setYY()       },
-    #        yz={   var<-setYY() 
-    #        var2<-setZZ()     },
-    #        xz={   var<-setXX()
-    #        var2<-setZZ()    },
-    #        yx={   var<-setYY() 
-    #        var2<-setXX() })
-    
+    var<-list.parameter.info[[1]]
+    var2<-list.parameter.info[[2]]         
     WW<-which(g1[[var]] %in% dd[,1] & g1[[var2]] %in% dd[,2]) 
-    vv<-df$df[WW,3:ncol(df$df)]
-    # vv <<- vv # replaced with the following line to avoid declaration of global variable (required for CRAN submission)
-    vv <- vv
+    vv<-df$df[WW,4:ncol(df$df)]
+    vv(vv)
     vv
   })  
   
@@ -1648,7 +1694,7 @@ app_server <- function(input, output, session) {
   })
   observeEvent(input$Change, {
     req(!is.null(input$Change))
-    df$df[which(row.names(df$df) %in% row.names(vv)),][input$text.new.group] <<-
+    df$df[which(row.names(df$df) %in% row.names(vv())),][input$text.new.group] <-
       input$NewGroup
     removeModal()
   }) # end of Observe Event
@@ -1771,9 +1817,12 @@ app_server <- function(input, output, session) {
     myvaluesx<-unlist(myvaluesx())
     
     size.scale <- size.scale()
-    if (nrow(df.sub3)>0){
-      df.sub$point.size[!((df.sub[,input$setx] %in% df.sub3[,input$setx]) & (df.sub[,input$sety] %in% df.sub3[,input$sety]) & (df.sub[,input$setz] %in% df.sub3[,input$setz]))]<-min.size2
-    } 
+   # if (nrow(df.sub3)>0){
+   #   df.sub$point.size[!((df.sub[,input$setx] %in% df.sub3[,input$setx]) & (df.sub[,input$sety] %in% df.sub3[,input$sety]) & (df.sub[,input$setz] %in% df.sub3[,input$setz]))]<-min.size2
+   # } 
+    if (nrow(df.sub3)>0 && input$setID != "null"){
+    df.sub$point.size[!((df.sub[,input$setID] %in% df.sub3[,input$setID]))]<-min.size2
+     }
     shapeX<-df.sub$shapeX
     shape.level<-levels(as.factor(shapeX))
     text2<-df.sub$text
@@ -1904,8 +1953,11 @@ app_server <- function(input, output, session) {
       df.sub3<-df.sub.minpoint()
       myvaluesx<-unlist(myvaluesx())
       size.scale <- size.scale()
-      if (nrow(df.sub3)>0){
-        df.sub2$point.size2[!((df.sub2[,input$setx] %in% df.sub3[,input$setx]) & (df.sub2[,input$sety] %in% df.sub3[,input$sety]) & (df.sub2[,input$setz] %in% df.sub3[,input$setz]))]<-min.size2
+     # if (nrow(df.sub3)>0){
+     #   df.sub2$point.size2[!((df.sub2[,input$setx] %in% df.sub3[,input$setx]) & (df.sub2[,input$sety] %in% df.sub3[,input$sety]) & (df.sub2[,input$setz] %in% df.sub3[,input$setz]))]<-min.size2
+      #}
+      if (nrow(df.sub3)>0 && input$setID != "null"){
+      df.sub2$point.size2[!((df.sub2[,input$setID] %in% df.sub3[,input$setID]))]<-min.size2
       }
       shapeX<-df.sub2$shapeX
       shape.level<-levels(as.factor(shapeX))
@@ -2022,8 +2074,8 @@ app_server <- function(input, output, session) {
           
           
           data.fit.3D<-data.fit.3D[data.fit.3D[,react.var.rerefit()] %in% react.listevarrefit(),]
-          varend<-str_to_lower(paste0(var,"end"))
-          var2end<-str_to_lower(paste0(var2,"end"))
+          varend<-stringr::str_to_lower(paste0(var,"end"))
+          var2end<-stringr::str_to_lower(paste0(var2,"end"))
           p<-p+geom_segment(data=data.fit.3D, aes(x = .data[[var]], y = .data[[var2]], xend=.data[[varend]],
                                                   yend=.data[[var2end]]), color=data.fit.3D$color.fit, size=input$w2, inherit.aes = F)
         }
@@ -2082,10 +2134,13 @@ app_server <- function(input, output, session) {
     # to correct the color for ggplot2
     myvaluesx2<-myvaluesx[levels(as.factor(df.sub()$layer2)) %in% levels(as.factor(droplevels(df.sub2$layer2)))]
     
-    if (nrow(df.sub3)>0){
-      df.sub2$point.size2[!((df.sub2[,input$setx] %in% df.sub3[,input$setx]) & (df.sub2[,input$sety] %in% df.sub3[,input$sety]) & (df.sub2[,input$setz] %in% df.sub3[,input$setz]))]<-min.size2
-    }
-    
+   # if (nrow(df.sub3)>0){
+   #   df.sub2$point.size2[!((df.sub2[,input$setx] %in% df.sub3[,input$setx]) & (df.sub2[,input$sety] %in% df.sub3[,input$sety]) & (df.sub2[,input$setz] %in% df.sub3[,input$setz]))]<-min.size2
+   # }
+      if (nrow(df.sub3)>0 && input$setID != "null"){
+       df.sub2$point.size2[!((df.sub2[,input$setID] %in% df.sub3[,input$setID]))]<-min.size2
+      }
+      
     list.parameter.info<-var.function(input$var1.simple)
     var<-list.parameter.info[[1]]
     var2<-list.parameter.info[[2]]      
@@ -2099,7 +2154,7 @@ app_server <- function(input, output, session) {
     
     shapeX<-df.sub2$shapeX
     shape.level<-levels(as.factor(shapeX))
-    point.size3<-as.factor(df.sub2$point.size2)
+    #point.size3<-as.factor(df.sub2$point.size2)
     
     p <- ggplot2::ggplot()
     if (!is.null(orthofile)){
@@ -2115,10 +2170,10 @@ app_server <- function(input, output, session) {
     p<- p + ggplot2::geom_point(data = df.sub2,
                     aes(x = .data[[var]],
                         y = .data[[var2]],
-                        col=factor(layer2),
-                        size=point.size3,
+                        col=factor(layer2)),
+                        size=df.sub2$point.size2,
                         shape=shapeX
-                    ))    +
+                    )    +
       ggplot2::coord_fixed(ratio.simple())
     
     if (input$var.fit.table.simple == "yes" & !is.null(data.fit.3D())){
@@ -2140,15 +2195,15 @@ app_server <- function(input, output, session) {
           }}} #end of if
       
       data.fit.3D<-data.fit.3D[data.fit.3D[,react.var.rerefit()] %in% react.listevarrefit(),]
-      varend<-str_to_lower(paste0(var,"end"))
-      var2end<-str_to_lower(paste0(var2,"end"))
+      varend<-stringr::str_to_lower(paste0(var,"end"))
+      var2end<-stringr::str_to_lower(paste0(var2,"end"))
       
       p<-p+geom_segment(data=data.fit.3D, aes(x = .data[[var]], y = .data[[var2]], xend=.data[[varend]],
                                               yend=.data[[var2end]]), color=data.fit.3D$color.fit, size=input$w2, inherit.aes = F)
     }
-    p<-p+scale_color_manual(values=myvaluesx2)+
-      scale_shape_manual(values=shape.level)+
-      scale_size_manual(values=c(size.scale,min.size2))+
+    p<-p+ggplot2::scale_color_manual(values=myvaluesx2)+
+      ggplot2::scale_shape_manual(values=shape.level)+
+      ggplot2::scale_size_manual(values=c(min.size2,size.scale))+
       xlab(paste(axis.var.name))+ylab(paste(axis.var2.name))+
       do.call(themeforfigure.choice(), list()) +
       theme(axis.title.x = element_text(size=font_size()),
@@ -2180,8 +2235,11 @@ app_server <- function(input, output, session) {
     sliderInput('range2dslice','Range of slices',min=xymin,max=xymax,value=c(xymin,xymax),step=input$step2dslice)
   })
   
-  ratio.slice<-reactiveVal(1)
-  observeEvent(c(input$range2dslice, input$step2dslice,input$advanced.slice), {
+
+    observeEvent(c(input$range2dslice, input$step2dslice,input$advanced.slice,input$xslider,input$yslider,input$zslider,myvaluesx(),
+                 minsize(),
+                 size.scale(),
+                 shape_all()), {
     req(!is.null(input$range2dslice))
     ratio.slice<-(max(input$range2dslice)-min(input$range2dslice))/input$step2dslice 
     ratio.slice<-ceiling(ratio.slice)
@@ -2197,11 +2255,16 @@ app_server <- function(input, output, session) {
     set.antivar.2d.slice<-c(setXX(),setYY())[c(setXX(),setYY())!=set.var.2d.slice()]
     
     df.sub3<-df.sub.minpoint() 
-    if (nrow(df.sub3)>0){
-      df.sub2$point.size2[!((df.sub2[,input$setx] %in% df.sub3[,input$setx]) & (df.sub2[,input$sety] %in% df.sub3[,input$sety]) & (df.sub2[,input$setz] %in% df.sub3[,input$setz]))]<-min.size2
-    }
-    
+   # if (nrow(df.sub3)>0){
+    #  df.sub2$point.size2[!((df.sub2[,input$setx] %in% df.sub3[,input$setx]) & (df.sub2[,input$sety] %in% df.sub3[,input$sety]) & (df.sub2[,input$setz] %in% df.sub3[,input$setz]))]<-min.size2
+    #}
+    if (nrow(df.sub3)>0 && input$setID != "null"){
+     df.sub2$point.size2[!((df.sub2[,input$setID] %in% df.sub3[,input$setID]))]<-min.size2
+     }
+     
     liste.valeur.slice<-vector(length=ratio.slice)
+    a <- new.env()
+    e(a)
     for (j in 1:ratio.slice){
       k<-j-1
       val<-min(input$range2dslice)+k*input$step2dslice
@@ -2223,7 +2286,7 @@ app_server <- function(input, output, session) {
       plotServerList <- lapply(
         1:ratio.slice,
         function(i) {
-          plotServer.simple(paste0("plot", i),df.sub.list[i],set.antivar.2d.slice,setZZ(),liste.valeur.slice[i])
+          plotServer.simple(paste0("plot", i),df.sub.list[i],set.antivar.2d.slice,setZZ(),liste.valeur.slice[i],i)
         })
     }
     
@@ -2252,10 +2315,13 @@ app_server <- function(input, output, session) {
     size.scale <- size.scale()
     
     df.sub3<-df.sub.minpoint()
-    if (nrow(df.sub3)>0){
-      df.sub4$point.size2[!((df.sub4[,input$setx] %in% df.sub3[,input$setx]) & (df.sub4[,input$sety] %in% df.sub3[,input$sety]) & (df.sub4[,input$setz] %in% df.sub3[,input$setz]))]<-min.size2
-      
-    }
+   # if (nrow(df.sub3)>0){
+    #  df.sub4$point.size2[!((df.sub4[,input$setx] %in% df.sub3[,input$setx]) & (df.sub4[,input$sety] %in% df.sub3[,input$sety]) & (df.sub4[,input$setz] %in% df.sub3[,input$setz]))]<-min.size2
+     #   }
+    if (nrow(df.sub3)>0 && input$setID != "null"){
+      df.sub4$point.size2[!((df.sub4[,input$setID] %in% df.sub3[,input$setID]))]<-min.size2
+      }  
+        
     myvaluesx<-unlist(myvaluesx())
     
     orthofile<-NULL
@@ -2315,9 +2381,9 @@ app_server <- function(input, output, session) {
         ggplot2::theme(axis.title.x = element_text(size=font_size()),
               axis.title.y = element_text(size=font_size()),
               axis.text.x = element_text(size=font_tick()),
-              axis.text.y = element_text(size=font_tick()))+
-        
-        {if (input$ratio.to.coord)coord_fixed()}
+               axis.text.y = element_text(size=font_tick()))+    
+         ggplot2::coord_fixed(ratio.simple()) 
+       # {if (input$ratio.to.coord)coord_fixed()}
       
     } else { p <- ggplot2::ggplot()+ ggRGB(img = orthofile,
                                  r = 1,
@@ -2557,6 +2623,18 @@ app_server <- function(input, output, session) {
     },
   )
   
+  ##2D plot slice.simple mode
+  output$download.slice <- downloadHandler(
+    filename = function(){paste("plot2D - ",paste(input$file1$name)," - ", Sys.Date(), '.pdf', sep = '')},
+    content = function(file){
+      plot.lists<-list()
+      for (i in 1:nb.slice()) {
+        plot.lists[[i]]<-get(paste0("session_store$test$",i), envir=e())
+      }
+      ggsave(grid.arrange(grobs = plot.lists, ncol = 1),filename=file, device = "pdf",scale=nb.slice(),limitsize=FALSE)
+    },
+  )
+  
   ##2d plot slice
   output$downloadData2d.slice <- downloadHandler(
     filename = function() {
@@ -2649,8 +2727,8 @@ app_server <- function(input, output, session) {
   })
   
   ##### output Table  ----
-  # output$table <-  DT::renderDataTable(
-  output$table <-  shiny::renderDataTable(    
+  # output$table <-  shiny::renderDataTable(
+  output$table <-  DT::renderDataTable(    
     DT::datatable(
       df.sub()[,-c(1:6)], extensions = 'Buttons', options = list(
         lengthMenu = list(c(5, 15,50,100, -1), c('5', '15','50','100', 'All')),
@@ -2689,6 +2767,7 @@ params:
   file: NA
   path: NA
   plot2: NA
+  plot2simple: NA
   plot3: NA
   plotrota: NA
   plotdens: NA
@@ -2837,6 +2916,7 @@ paste('no refit table has been added')
 
 ```{r plotlyout, echo=FALSE, message=FALSE, out.width='100%'}
 if (!is.null(params$plot2)) {params$plot2}
+if (!is.null(params$plot2simple)) {params$plot2simple}
 if (!is.null(params$plot3)) {params$plot3}
 if (!is.null(params$plotdens)) {params$plotdens}
 if (!is.null(params$plotdens)) {params$plotrota}
@@ -2861,6 +2941,7 @@ output$export.Rmarkdown<- downloadHandler(
                     path= input$file1$datapath,
                     plot3= session_store$plt,
                     plot2= session_store$plt2D,
+                    plot2simple=session_store$plt2D.simple,
                     plotrota=session_store$plotrota,
                     plotdens=session_store$plotdensity,
                     nat=input$Nature,
