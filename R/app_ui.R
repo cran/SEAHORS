@@ -177,45 +177,47 @@ ui <- shinyUI(
                                              br(),
                                              
                                              HTML(
-                                               " <div style=width:100%;, align=left>
+                                               paste0(" <div style=width:100%;, align=left>
     <font size=3>
    <span style='text-transform:none'>
    
-   <i>SEAHORS</i> is dedicated to the intra-site spatial analysis of archaeological piece-plotted</p>
-   
-   <p> v1.7</p>
-   <p>This shiny R script makes possible to explore the spatial organisation of coordinate points taken on archaeological fields 
-  and to visualise their distributions using interactive 3D and 2D plots </p>
-   <br>
-   <p> An overview of the possibility was published by: </p>
-   <p> Royer, A., Discamps, E., Plutniak, S., & Thomas, M. (submitted) - SEAHORS: Spatial Exploration of ArcHaeological Objects in R Shiny. </p>
-   <p> Submitted to PCIArchaeology, 2023 
-   <a href=https://archaeo.peercommunityin.org/PCIArchaeology target=_blank>https://archaeo.peercommunityin.org/PCIArchaeology/</a></p>
-   <p> Preprint: https://doi.org/10.5281/zenodo.7674699 </p>
-   <p>A video explaining the features is also available <a href=https://nakala.fr/10.34847/nkl.3fdd6h8j target=_blank>here</a></p>
-  <br>
-   <p>The source code is openly published on the dedicated <a href=https://github.com/AurelienRoyer/SEAHORS/ target=_blank>github repository</a>
-   <p style = 'color:blue;'> <i>ENJOY IT !</i></color> </p> 
-   
-   </span> 
-   
-      </font size>           
-                                               <br>
-                                               <br>
-                                               <br>
-                                               <br>
-                                               <br></div>" )
-                                      ), ), #end of column
-                             ), # end div()
-                             column(12,  column(8,),column(2, HTML(
-                               "  <div style=height:50%;, align=rigth> 
-                          <font size=2>
-                          <p>To import an example:</p>
-                          </font size>
-                          </div>"),#end html
-                               actionButton("button_example","Click to load the Cassenade dataset",style="height:50%")),
-                               tags$br(),
-                               tags$br(),),
+   <i>SEAHORS</i> (v. ", packageVersion("SEAHORS"), ") is an application dedicated to the intra-site spatial analysis of archaeological piece-plotted objects.</p>
+   <p>It makes it possible to explore the spatial organisation of coordinate points taken on archaeological fields  and to visualise their distributions using interactive 3D and 2D plots.</p>
+   <p> Its functionalities are presented in: </p>
+   <p>
+   <ul>
+    <li>a <a href=https://nakala.fr/10.34847/nkl.3fdd6h8j target=_blank>video </a> tutorial</li>
+    <li>and papers: 
+<p> -Royer, A., E. Discamps, S. Plutniak, M. Thomas. (2023). 'SEAHORS: Spatial Exploration of ArcHaeological Objects in R Shiny'. <a href=https://archaeo.peercommunityin.org/articles/rec?id=320 target=_blank> <i>PCI Archaeology</i> </a>, DOI: <a href=https://doi.org/10.5281/zenodo.7674698 target=_blank>10.5281/zenodo.7674698</a>.</li> </p>
+<p> -Royer, A., E. Discamps, S. Plutniak, M. Thomas. (2023). 'SEAHORS: Spatial Exploration of ArcHaeological Objects in R Shiny'. <a href=https://peercommunityjournal.org/articles/10.24072/pcjournal.289/ target=_blank> <i>Peer Community Journal</i> </a>, DOI: <a href=10.24072/pcjournal.289 target=_blank>10.24072/pcjournal.289</a>.</li>  </p>
+</ul>
+  </p>
+   <p>This is an open and free software, 
+   <ul>
+      <li>it is available as an R package on the <a href=https://cran.r-project.org/package=SEAHORS target=_blank>CRAN</a>, and</li>
+      <li> its source code is published on a <a href=https://github.com/AurelienRoyer/SEAHORS/ target=_blank>github repository</a>.</li>
+    </ul>
+    </p>
+    <br>
+    <p>Try <i>SEAHORS</i> now with the <a href=https://hal.science/hal-02190243 target=_blank>Cassenade</a> Paleolithic site dataset:</p>
+    </span> 
+    </font>" ))
+    ), 
+                               actionButton("button_example", 
+                                            "Click to load the Cassenade dataset", style="height:50%"),
+    br(), br(),
+                               HTML("<p style = 'color:blue;'> <i>ENJOY IT !</i></color> </p> </div>"),
+                                      ), #end of column
+                             ) # end div()
+                          #    column(12, column(2, HTML(
+                          #      "  <div style=height:50%;, align=left> 
+                          # <font size=2>
+                          # <p>Try <i>SEAHORS</i> with the <a href=https://hal.science/hal-02190243 target=_blank>Cassenade</a> Paleolithic site dataset:</p>
+                          # </font size>
+                          # </div>"),#end html
+                          #      actionButton("button_example","Click to load the Cassenade dataset",style="height:50%")),
+                          #      tags$br(),
+                               # tags$br(),),
                              
                     ), #end of tabPanel
                     tabPanel("Load data", 
@@ -271,6 +273,7 @@ ui <- shinyUI(
                                                   ),#end of fluidrow   
                                                   tags$hr(),
                                                   tableOutput("contents")
+                                             
                                          ), #end of tabPanel
                                          tabPanel(tags$h5("Merge additional data"), 
                                                   tags$br(),
@@ -346,7 +349,7 @@ ui <- shinyUI(
                                                   tags$br(),
                                                   tags$h5(style = "color: blue;","Table of refits"),
                                                   verbatimTextOutput("Fit.table.output"),
-                                                  downloadButton("downloadData_redata", "Download"),
+                                                  downloadButton("downloadData_redata", "Download")
                                          ),#end tabpanel
                                          tabPanel(tags$h5("Concatenate two columns"), 
                                                   tags$br(),
@@ -374,9 +377,13 @@ ui <- shinyUI(
                              tabsetPanel(type = "tabs",
                                          tabPanel(tags$h5("Raw table"), 
                                                   fluidRow(
-                                                    column(10,
-                                                           DTOutput("table"))),
-                                                  column(11, downloadButton("downloadData_rawdata", "Download")),
+                                                  column(10, 
+                                                         br(),
+                                                         downloadButton("downloadData_rawdata", "Download raw table"),
+                                                         br(),br(),
+                                                        DTOutput("table")
+                                                    # column(10,)
+                                                        ))
                                          ),#end tabpanel
                                          tabPanel(tags$h5("Pivot table"),
                                                   fluidRow(
@@ -387,6 +394,20 @@ ui <- shinyUI(
                                                     column(11, downloadButton("downloadData_pivotdata", "Download")),
                                                   ) #end fluidrow
                                          ), #end tabpanel
+                                         tabPanel(tags$h5("archeoViz exports"), 
+                                                  fluidRow(
+                                                    column(10, 
+                                                           br(),
+                                                           HTML("Like <i>SEAHORS</i>, <a href=https://analytics.huma-num.fr/archeoviz/en target=_blank><i>archeoViz </i> </a>  is a web application to visualise spatial archaeological data. In addition, <i>archeoViz </i> allows to edit and communicate spatial datasets as <a href=https://analytics.huma-num.fr/archeoviz/home/ target=_blank>static web applications</a>.</p>
+                                                                <p> Interoperability between archaeological software matters. So, here, you can:
+                                                                 </p>"),
+                                                           br(),
+                                                           downloadLink("download.archeoviz", "* Export your data in archeoViz format (CSV)"),
+                                                           br(),
+                                                           br(),
+                                                           uiOutput("run.archeoviz")
+                                                    ))
+                                         ),#end tabpanel
                              ), #end tabset panel
                     ), #end tabPanel
                     
