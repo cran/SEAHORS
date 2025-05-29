@@ -33,7 +33,28 @@ ui <- shinyUI(
                    tags$hr(),
                    
                    tags$style(HTML(css)),
-                   
+                   column(12,
+               column(2,
+        shinyWidgets::actionBttn(
+          inputId = "save_load",
+          label = "save",
+          style = "stretch",
+          color = "danger",
+          size= "xs",
+          icon = icon("fas fa-save",lib = "font-awesome")
+        ),
+               ),
+        column(2,),
+        column(2,
+               shinyWidgets::actionBttn(
+                 inputId = "save_load2",
+                 label = "load",
+                 style = "stretch",
+                 color = "danger",
+                 size= "xs",
+                 icon = icon("fas fa-upload",lib = "font-awesome")
+               ),)
+        ),
                    radioButtons(
                      "bt2", h4("QUICK SIDEBAR"),
                      choices = c("Data" = 1,
@@ -149,7 +170,11 @@ ui <- shinyUI(
                                            column(4,numericInput("Xminor.breaks", "Position of X minor breaks",1, min = 0, max=40),),
                                            column(4,numericInput("Yminor.breaks", "Position of Y minor breaks",1, min = 0, max=40),),
                                            column(4,numericInput("Zminor.breaks", "Position of Z minor breaks",1, min = 0, max=40),),),
-                                    
+                                                                         column(10,
+                                            checkboxInput("checkbox.auto.limits", label = "Automatic limits", value = TRUE),
+                                            uiOutput("X.limx2"),
+                                            uiOutput("Y.limx2"),
+                                     ),
                                     
                                     column(12,br(),
                                            hr(),),
@@ -226,14 +251,18 @@ ui <- shinyUI(
                                                   tags$br(),
                                                   tags$br(),
                                                   tags$hr(),
-                                                  fluidRow(column(10,
-                                                                  tags$h4(style = "color: red;","Options for loading file"), 
-                                                                  checkboxInput("header", "Header", TRUE),
-                                                                  checkboxInput("set.dec", "Check this option to automatically correct for the presence of comma in decimal numbers", TRUE),
-                                                                  tags$hr(),
-                                                  ),#endcolumn
-                                                  ),#end of fluidrow  
-                                                  fluidRow(column(12,
+                                                  tags$h4(style = "color: red;","Loading file"), 
+                                                  #fluidRow(
+                                                  #   column(10,
+                                                  #                 tags$h4(style = "color: red;","Options for loading file"), 
+                                                  #                 checkboxInput("header", "Header", TRUE),
+                                                  #                 checkboxInput("set.dec", "Check this option to automatically correct for the presence of comma in decimal numbers", TRUE),
+                                                  #                 numericInput("digit.number", "To control the number of significant digit", 11, min = 1, step=1, max=30, width="50%"),
+                                                  #                 
+                                                  #                        tags$hr(),
+                                                  # ),#endcolumn
+                                                  #),#end of fluidrow  
+                                                  fluidRow(column(9,
                                                                   fileInput("file1", "Choose File (.csv/.xls/.xlsx)",
                                                                             multiple = TRUE,
                                                                             accept = c("text/csv",
@@ -243,7 +272,44 @@ ui <- shinyUI(
                                                                   selectInput(inputId = "worksheet", label="Worksheet Name", choices =''),
                                                                   actionButton(inputId = "getData",label="Get Data"),
                                                                   actionButton('reset.BDD', 'Reset Input')
-                                                  )),
+                                                  ),
+                                                  column(3,
+                                                         shinyWidgets::actionBttn(
+                                                           inputId = "chr_setting",
+                                                           label = "Options for loading file",
+                                                           style = "unite",
+                                                           color = "danger",
+                                                           icon = icon("fas fa-cogs",lib = "font-awesome")
+                                                         ),
+                                                         tags$style("#bsmodal_param .modal-dialog{ width:1200px} 
+                                                                .modal-backdrop {
+                                                                                    display: none;
+                                                                                    z-index: 1040 !important;
+                                                                                }
+                                                                                
+                                                                                .modal-content {
+                                                                                    margin: 2px auto;
+                                                                                    z-index: 1100 !important;
+                                                                                }
+                                                                                
+                                                                                "),
+                                                         
+                                                         bsModal(
+                                                           id = "bsmodal_param",
+                                                           title = tags$h4(style = "color: red;","Options for loading file"),
+                                                           trigger = "chr_setting",size = "large",
+                                                           
+                                                           
+                                                           checkboxInput("header", "Header", TRUE),
+                                                           checkboxInput("set.dec", "Check this option to automatically correct for the presence of comma in decimal numbers", TRUE),
+                                                         
+                                                         
+                                                           numericInput("digit.number", "To control the number of significant digit", 11, min = 1, step=1, max=30)
+                                                     
+                                                         ),)
+                                                  
+                                                  
+                                                  ),
                                                   fluidRow(
                                                     tags$br(),
                                                     htmlOutput("nb6"),
@@ -443,66 +509,6 @@ ui <- shinyUI(
                     tabPanel("2D plot", 
                              
                              tabsetPanel(type = "tabs",
-                                         tabPanel(tags$h5("Advanced 2D plot"),
-                                                  
-                                                  fluidRow(tags$br(),
-                                                           htmlOutput("nb2"),
-                                                           tags$br(),
-                                                           column(1,  actionButton("run_button", "Display/refresh", icon = icon("play")),),
-                                                           tags$br(),
-                                                           tags$br(),
-                                                           tags$br(),
-                                                           column(12,      
-                                                                  radioButtons("var1", "section",
-                                                                               choices = c(xy = "xy",
-                                                                                           yx = "yx",
-                                                                                           yz = "yz",
-                                                                                           xz = "xz"),
-                                                                               selected = "xy", inline=TRUE),
-                                                                  tags$br(),),
-                                                           
-                                                           column(12,
-                                                                  uiOutput("plot2Dbox"),),
-                                                           tags$br(),),
-                                                  fluidRow(
-                                                    tags$br(),
-                                                    tags$br(),
-                                                    hr(style = "border-top: 1px solid #000000;"), 
-                                                    
-                                                    radioButtons("var.ortho", "include ortho",
-                                                                 choices = c(no = "no",
-                                                                             yes = "yes"),
-                                                                 selected = "no", inline=TRUE),  
-                                                    tags$br(),
-                                                    radioButtons("var.fit.table", "Include refits",
-                                                                 choices = c(no = "no",
-                                                                             yes = "yes"),
-                                                                 selected = "no", inline=TRUE),
-                                                    column(2),
-                                                    column(6,downloadButton("downloadData2D", "Download as .HTML")), ),
-                                                  
-                                                  hr(style = "border-top: 0.5px solid #000000;"), 
-                                                  fluidRow(column(8,
-                                                                  tags$br(),
-                                                                  tags$h4(style = "color: red;","How to record a new variable in SEAHORS:"),
-                                                                  tags$h5(style = "color: blue;","Step1: go to the RECORD NEW GROUP subpanel in the ADDITIONAL SETTINGS panel"),
-                                                                  tags$h5(style = "color: blue;","Step2: choose a name for your new group variable and create it"),
-                                                                  tags$h5(style = "color: blue;","Step3: go back to 2D PLOT panel, and use the box or lasso tool to select points"),
-                                                                  tags$h5(style = "color: blue;","Step4: click on the button below to record group information for the selected points"),
-                                                  ),
-                                                  column(12,actionButton('Change2','Change Group Assignment'),),
-                                                  tags$br(),
-                                                  column(8,
-                                                         tags$br(),
-                                                         tags$br(), 
-                                                  ),
-                                                  ),#end fluidrow
-                                                  fluidRow(
-                                                    column(9,
-                                                           verbatimTextOutput("brushed"))
-                                                  ) #end fluidrow
-                                         ), #end sub-tabpanel
-                                         
                                          tabPanel(tags$h5("Simple 2D plot"),
                                                   fluidRow(tags$br(),
                                                            htmlOutput("nb2.2"),
@@ -545,7 +551,76 @@ ui <- shinyUI(
                                                   tags$br(),
                                                   
                                                   
-                                         ),#end tabpanel    
+                                         ),#end tabpanel 
+                                         tabPanel(tags$h5("Advanced 2D plot"),
+                                                  
+                                                  fluidRow(tags$br(),
+                                                           htmlOutput("nb2"),
+                                                           tags$br(),
+                                                           column(1,  actionButton("run_button", "Display/refresh", icon = icon("play")),),
+                                                           tags$br(),
+                                                           tags$br(),
+                                                           tags$br(),
+                                                           column(12,      
+                                                                  radioButtons("var1", "section",
+                                                                               choices = c(xy = "xy",
+                                                                                           yx = "yx",
+                                                                                           yz = "yz",
+                                                                                           xz = "xz"),
+                                                                               selected = "xy", inline=TRUE),
+                                                                  tags$br(),),
+                                                           
+                                                           column(12,
+                                                                  uiOutput("plot2Dbox"),),
+                                                           tags$br(),),
+                                                  fluidRow(
+                                                    tags$br(),
+                                                    tags$br(),
+                                                    hr(style = "border-top: 1px solid #000000;"), 
+                                                    column(7,
+                                                           shinyWidgets::actionBttn(
+                                                             inputId = "chr_settingbp",
+                                                             label = "Bar plot display",
+                                                             style = "unite",
+                                                             color = "danger",
+                                                             icon = icon("fas fa-chart-column",lib = "font-awesome")
+                                                           ),
+                                                           ),
+                                                    radioButtons("var.ortho", "include ortho",
+                                                                 choices = c(no = "no",
+                                                                             yes = "yes"),
+                                                                 selected = "no", inline=TRUE),  
+                                                    tags$br(),
+                                                    radioButtons("var.fit.table", "Include refits",
+                                                                 choices = c(no = "no",
+                                                                             yes = "yes"),
+                                                                 selected = "no", inline=TRUE),
+                                                    column(2),
+                                                    column(6,downloadButton("downloadData2D", "Download as .HTML")), ),
+                                                  
+                                                  hr(style = "border-top: 0.5px solid #000000;"), 
+                                                  fluidRow(column(8,
+                                                                  tags$br(),
+                                                                  tags$h4(style = "color: red;","How to record a new variable in SEAHORS:"),
+                                                                  tags$h5(style = "color: blue;","Step1: go to the RECORD NEW GROUP subpanel in the ADDITIONAL SETTINGS panel"),
+                                                                  tags$h5(style = "color: blue;","Step2: choose a name for your new group variable and create it"),
+                                                                  tags$h5(style = "color: blue;","Step3: go back to 2D PLOT panel, and use the box or lasso tool to select points"),
+                                                                  tags$h5(style = "color: blue;","Step4: click on the button below to record group information for the selected points"),
+                                                  ),
+                                                  column(12,actionButton('Change2','Change Group Assignment'),),
+                                                  tags$br(),
+                                                  column(8,
+                                                         tags$br(),
+                                                         tags$br(), 
+                                                  ),
+                                                  ),#end fluidrow
+                                                  fluidRow(
+                                                    column(9,
+                                                           verbatimTextOutput("brushed"))
+                                                  ) #end fluidrow
+                                         ), #end sub-tabpanel
+                                         
+                                            
                              ), #end tabset panel
                     ), #end tabPanel
                     
@@ -561,7 +636,7 @@ ui <- shinyUI(
                                                           selected = "yz", inline=TRUE),
                                            tags$br(),),
                                     column(2),
-                                    column(3,checkboxInput("advanced.slice",label="Advanced plot", value=TRUE)),
+                                    column(3,checkboxInput("advanced.slice",label="Advanced plot", value=FALSE)),
                              ),
                              
                              column(12, numericInput("step2dslice", HTML("Thickness of slices <br> (lower this parameter to get more slices)"), 4, min = 0.1, max=10,step = 1, width="50%")),
@@ -747,6 +822,7 @@ ui <- shinyUI(
                                                           actionButton("go.ng2", "Modify"),),
                                                   
                                          ), #end tabpanel
+
                                          tabPanel(tags$h5("Export settings"), 
                                                   br(),
                                                   radioButtons("docpdfhtml", "Export format",
@@ -756,7 +832,27 @@ ui <- shinyUI(
                                                   br(),
                                                   fluidRow(
                                                     column(6, downloadButton("export.Rmarkdown", "Export settings as Rmarkdown document")),
-                                                  )
+                                                  ),
+                                                  br(),
+                                                  hr(),
+                                                #  br(),
+                                                #  tags$h4("To save the settings as .csv"),
+                                                #  fluidRow(
+                                                #    column(7, downloadButton("export.settings", "Export settings as csv document")),
+                                                #    br(),
+                                                #    hr(),
+                                                #    br(),),
+                                                #  br(), 
+                                                #  tags$h4("To load settings"),
+                                                  fluidRow(
+                                               #     column(7, fileInput("file.color.set", "Choose File to import settings (.csv)",
+                                               #               multiple = TRUE,
+                                               #               accept = c("text/csv",
+                                                 #                        "text/comma-separated-values,text/plain",
+                                                 #                        ".csv")),
+                                                     
+                                                  #  actionButton("go.load.settings", "load it"))
+                                                    )
                                          ), #end tabpanel
                                          
                              ),#end tabsetpanel temp
